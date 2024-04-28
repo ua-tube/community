@@ -1,0 +1,86 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["omitApi"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Creator {
+  id               String             @id @db.Uuid
+  displayName      String             @map("display_name")
+  nickname         String
+  thumbnailUrl     String?            @map("thumbnail_url")
+  VideoForums      VideoForum[]
+  VideoComments    VideoComment[]
+  VideoCommentVote VideoCommentVote[]
+
+  @@map("creators")
+}
+
+model VideoForum {
+  videoId                String           @id @map("video_id") @db.Uuid
+  creatorId              String           @map("creator_id") @db.Uuid
+  Creator                Creator          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  status                 VideoForumStatus
+  allowedToComment       Boolean          @map("allowed_to_comment")
+  videoCommentsCount     Int              @map("video_comments_count")
+  rootVideoCommentsCount Int              @map("root_video_comments_count")
+  VideoComments          VideoComment[]
+
+  @@map("video_forums")
+}
+
+enum VideoForumStatus {
+  Registered
+  Unregistered
+
+  @@map("video_forum_statutes")
+}
+
+model VideoComment {
+  id                String             @id @default(uuid()) @db.Uuid
+  videoId           String             @map("video_id") @db.Uuid
+  VideoForum        VideoForum         @relation(fields: [videoId], references: [videoId], onDelete: Cascade)
+  parentCommentId   String?            @map("parent_comment_id") @db.Uuid
+  ParentComment     VideoComment?      @relation("video_comment", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  creatorId         String             @map("creator_id") @db.Uuid
+  Creator           Creator            @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  comment           String             @db.Text
+  likesCount        Int                @map("likes_count")
+  dislikesCount     Int                @map("dislikes_count")
+  repliesCount      Int                @map("replies_count")
+  Replies           VideoComment[]     @relation("video_comment")
+  VideoCommentVotes VideoCommentVote[]
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  editedAt          DateTime?          @map("edited_at") @db.Timestamptz(6)
+
+  @@index([videoId])
+  @@index([videoId, parentCommentId])
+  @@map("video_comments")
+}
+
+model VideoCommentVote {
+  creatorId      String               @map("creator_id") @db.Uuid
+  Creator        Creator              @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  videoCommentId String               @map("video_command_id") @db.Uuid
+  VideoComment   VideoComment         @relation(fields: [videoCommentId], references: [id], onDelete: Cascade)
+  videoId        String               @map("video_id") @db.Uuid
+  type           VideoCommentVoteType
+
+  @@id([creatorId, videoCommentId])
+  @@index([creatorId])
+  @@index([videoId])
+  @@index([videoId, creatorId])
+  @@map("videos_comments_votes")
+}
+
+enum VideoCommentVoteType {
+  None
+  Like
+  Dislike
+
+  @@map("video_comment_vote_types")
+}
