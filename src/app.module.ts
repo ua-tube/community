@@ -3,6 +3,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggingInterceptor } from './common/interceptors';
 import { CommunityModule } from './community/community.module';
 import { CreatorsModule } from './creators/creators.module';
+import { HealthModule } from './health/health.module';
 import { ConfigModule } from '@nestjs/config';
 import Joi from 'joi';
 
@@ -26,6 +27,7 @@ import Joi from 'joi';
     }),
     CommunityModule,
     CreatorsModule,
+    HealthModule,
   ],
   providers: [
     {

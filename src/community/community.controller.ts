@@ -1,8 +1,25 @@
-import { Body, Controller, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { CommunityService } from './community.service';
 import { AuthUserGuard } from '../common/guards';
 import { UserId } from '../common/decorators';
-import { AddCommentDto, EditCommentDto, ReplyDto, VoteDto } from './dto';
+import {
+  AddCommentDto,
+  EditCommentDto,
+  PaginationDto,
+  ReplyDto,
+  VoteDto,
+} from './dto';
 import { EventPattern, Payload } from '@nestjs/microservices';
 
 @Controller('community')
@@ -21,6 +38,14 @@ export class CommunityController {
     await this.communityService.unregisterForum(payload.videoId);
   }
 
+  @Get('comments/:videoId')
+  getComments(
+    @Param('videoId', ParseUUIDPipe) videoId: string,
+    @Query() query: PaginationDto,
+  ) {
+    return this.communityService.getComments(videoId, query);
+  }
+
   @UseGuards(AuthUserGuard)
   @Post('comments')
   addComment(@Body() dto: AddCommentDto, @UserId() userId: string) {
@@ -34,6 +59,15 @@ export class CommunityController {
   }
 
   @UseGuards(AuthUserGuard)
+  @Delete('comments/:commentId')
+  deleteComment(
+    @Param('commentId', ParseUUIDPipe) commentId: string,
+    @UserId() userId: string,
+  ) {
+    return this.communityService.deleteComment(commentId, userId);
+  }
+
+  @UseGuards(AuthUserGuard)
   @Post('comments/replies')
   reply(@Body() dto: ReplyDto, @UserId() userId: string) {
     return this.communityService.reply(dto, userId);
@@ -43,5 +77,23 @@ export class CommunityController {
   @Post('comments/votes')
   vote(@Body() dto: VoteDto, @UserId() userId: string) {
     return this.communityService.vote(dto, userId);
+  }
+
+  @UseGuards(AuthUserGuard)
+  @Get('comments/votes/:videoId')
+  getUserVotes(
+    @Param('videoId', ParseUUIDPipe) videoId: string,
+    @UserId() userId: string,
+  ) {
+    return this.communityService.getVotes(videoId, userId);
+  }
+
+  @Get(':videoId')
+  getVideoForum(
+    @Param('videoId', ParseUUIDPipe) videoId: string,
+    @Query('perPage') perPage: string,
+    @Query('userId') userId?: string,
+  ) {
+    return this.communityService.getVideoForum(videoId, perPage, userId);
   }
 }

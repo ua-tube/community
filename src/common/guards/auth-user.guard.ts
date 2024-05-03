@@ -7,14 +7,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { isEmpty } from 'class-validator';
-import { Request } from 'express';
 
 @Injectable()
 export class AuthUserGuard implements CanActivate {
   constructor(private readonly configService: ConfigService) {}
 
   public async canActivate(ctx: ExecutionContext): Promise<boolean> | never {
-    const req: Request = ctx.switchToHttp().getRequest();
+    const req = ctx.switchToHttp().getRequest();
 
     const authorizationHeader = req.headers['authorization'] || '';
     if (isEmpty(authorizationHeader)) {
@@ -38,7 +37,7 @@ export class AuthUserGuard implements CanActivate {
         },
       );
 
-      req.res.locals.userId = data.id;
+      req.userId = data.id;
 
       return true;
     } catch {
