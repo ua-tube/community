@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommunityService } from './community.service';
-import { AuthUserGuard } from '../common/guards';
+import { AuthUserGuard, OptionalAuthUserGuard } from '../common/guards';
 import { UserId } from '../common/decorators';
 import {
   AddCommentDto,
@@ -88,11 +88,12 @@ export class CommunityController {
     return this.communityService.getVotes(videoId, userId);
   }
 
+  @UseGuards(OptionalAuthUserGuard)
   @Get(':videoId')
   getVideoForum(
     @Param('videoId', ParseUUIDPipe) videoId: string,
     @Query('perPage') perPage: string,
-    @Query('userId') userId?: string,
+    @UserId() userId: string,
   ) {
     return this.communityService.getVideoForum(videoId, perPage, userId);
   }
