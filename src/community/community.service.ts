@@ -140,8 +140,8 @@ export class CommunityService {
       throw new BadRequestException('Parent comment not found');
 
     try {
-      await this.prisma.$transaction(async (tx) => {
-        await tx.videoComment.create({
+      await this.prisma.$transaction([
+        this.prisma.videoComment.create({
           data: {
             ...dto,
             creatorId,
@@ -149,18 +149,16 @@ export class CommunityService {
             dislikesCount: 0,
             likesCount: 0,
           },
-        });
-        await Promise.all([
-          tx.videoComment.update({
-            where: { id: dto.parentCommentId },
-            data: { repliesCount: { increment: 1 } },
-          }),
-          tx.videoForum.update({
-            where: { videoId: dto.videoId },
-            data: { videoCommentsCount: { increment: 1 } },
-          }),
-        ]);
-      });
+        }),
+        this.prisma.videoComment.update({
+          where: { id: dto.parentCommentId },
+          data: { repliesCount: { increment: 1 } },
+        }),
+        this.prisma.videoForum.update({
+          where: { videoId: dto.videoId },
+          data: { videoCommentsCount: { increment: 1 } },
+        }),
+      ]);
       return { status: true };
     } catch (e: unknown) {
       this.logger.error(e);
