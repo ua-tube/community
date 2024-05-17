@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma';
-import { UpsertCreator } from './types';
+import { UpsertCreatorDto } from './dto';
 
 @Injectable()
 export class CreatorsService {
@@ -8,7 +8,7 @@ export class CreatorsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async upsertCreator(payload: UpsertCreator) {
+  async upsertCreator(payload: UpsertCreatorDto) {
     const creator = await this.prisma.creator.findUnique({
       where: { id: payload.id },
       select: { id: true },
