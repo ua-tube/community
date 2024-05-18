@@ -18,7 +18,6 @@ import Joi from 'joi';
         HTTP_HOST: Joi.string().required(),
         HTTP_PORT: Joi.number().required(),
         AUTH_SVC_URL: Joi.string().required(),
-        USERS_SVC_URL: Joi.string().required(),
         REDIS_URL: Joi.string().required(),
         DATABASE_URL: Joi.string().required(),
         RABBITMQ_URL: Joi.string().required(),
