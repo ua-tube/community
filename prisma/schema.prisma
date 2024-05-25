@@ -13,9 +13,9 @@ model Creator {
   displayName      String             @map("display_name")
   nickname         String
   thumbnailUrl     String?            @map("thumbnail_url")
-  VideoForums      VideoForum[]
-  VideoComments    VideoComment[]
-  VideoCommentVote VideoCommentVote[]
+  videoForums      VideoForum[]
+  videoComments    VideoComment[]
+  videoCommentVote VideoCommentVote[]
 
   @@map("creators")
 }
@@ -23,12 +23,12 @@ model Creator {
 model VideoForum {
   videoId                String           @id @map("video_id") @db.Uuid
   creatorId              String           @map("creator_id") @db.Uuid
-  Creator                Creator          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creator                Creator          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   status                 VideoForumStatus
   allowedToComment       Boolean          @map("allowed_to_comment")
   videoCommentsCount     Int              @map("video_comments_count")
   rootVideoCommentsCount Int              @map("root_video_comments_count")
-  VideoComments          VideoComment[]
+  videoComments          VideoComment[]
 
   @@map("video_forums")
 }
@@ -45,15 +45,15 @@ model VideoComment {
   videoId           String             @map("video_id") @db.Uuid
   VideoForum        VideoForum         @relation(fields: [videoId], references: [videoId], onDelete: Cascade)
   parentCommentId   String?            @map("parent_comment_id") @db.Uuid
-  ParentComment     VideoComment?      @relation("video_comment", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  parentComment     VideoComment?      @relation("video_comment", fields: [parentCommentId], references: [id], onDelete: Cascade)
   creatorId         String             @map("creator_id") @db.Uuid
-  Creator           Creator            @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creator           Creator            @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   comment           String             @db.Text
   likesCount        Int                @map("likes_count")
   dislikesCount     Int                @map("dislikes_count")
   repliesCount      Int                @map("replies_count")
-  Replies           VideoComment[]     @relation("video_comment")
-  VideoCommentVotes VideoCommentVote[]
+  replies           VideoComment[]     @relation("video_comment")
+  videoCommentVotes VideoCommentVote[]
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   editedAt          DateTime?          @map("edited_at") @db.Timestamptz(6)
 
@@ -64,9 +64,9 @@ model VideoComment {
 
 model VideoCommentVote {
   creatorId      String               @map("creator_id") @db.Uuid
-  Creator        Creator              @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creator        Creator              @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   videoCommentId String               @map("video_command_id") @db.Uuid
-  VideoComment   VideoComment         @relation(fields: [videoCommentId], references: [id], onDelete: Cascade)
+  videoComment   VideoComment         @relation(fields: [videoCommentId], references: [id], onDelete: Cascade)
   videoId        String               @map("video_id") @db.Uuid
   type           VideoCommentVoteType
 

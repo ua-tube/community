@@ -20,7 +20,8 @@ import {
   ReplyDto,
   VoteDto,
 } from './dto';
-import { EventPattern, Payload } from '@nestjs/microservices';
+import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
+import { ackMessage } from '../common/utils';
 
 @Controller('community')
 export class CommunityController {
@@ -29,13 +30,19 @@ export class CommunityController {
   @EventPattern('create_forum')
   async handleCreateForum(
     @Payload() payload: { videoId: string; creatorId: string },
+    @Ctx() context: RmqContext,
   ) {
     await this.communityService.createForum(payload);
+    ackMessage(context);
   }
 
   @EventPattern('unregister_forum')
-  async unregisterForum(@Payload() payload: { videoId: string }) {
+  async unregisterForum(
+    @Payload() payload: { videoId: string },
+    @Ctx() context: RmqContext,
+  ) {
     await this.communityService.unregisterForum(payload.videoId);
+    ackMessage(context);
   }
 
   @Get('comments/:videoId')

@@ -43,10 +43,10 @@ export class CommunityService {
       where: { videoId, parentCommentId: null },
       omit: { videoId: true, parentCommentId: true },
       include: {
-        Creator: true,
-        Replies: {
+        creator: true,
+        replies: {
           omit: { videoId: true },
-          include: { Creator: true },
+          include: { creator: true },
         },
       },
       take: pagination.perPage,
@@ -268,10 +268,10 @@ export class CommunityService {
           where: { videoId, creatorId, parentCommentId: null },
           omit: { videoId: true, parentCommentId: true },
           include: {
-            Creator: true,
-            Replies: {
+            creator: true,
+            replies: {
               omit: { videoId: true },
-              include: { Creator: true },
+              include: { creator: true },
             },
           },
         }),
