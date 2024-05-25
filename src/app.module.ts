@@ -14,7 +14,6 @@ import Joi from 'joi';
       isGlobal: true,
       validationSchema: Joi.object({
         NODE_ENV: Joi.valid('development', 'production', 'test').required(),
-        CLIENT_URL: Joi.string().required(),
         HTTP_HOST: Joi.string().required(),
         HTTP_PORT: Joi.number().required(),
         AUTH_SVC_URL: Joi.string().required(),
