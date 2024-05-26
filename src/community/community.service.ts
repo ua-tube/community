@@ -1,8 +1,10 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   Logger,
+  OnModuleInit,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma';
 import {
@@ -12,12 +14,28 @@ import {
   ReplyDto,
   VoteDto,
 } from './dto';
+import { SUBSCRIPTIONS_SVC } from '../common/constants';
+import { ClientRMQ } from '@nestjs/microservices';
+import { PersistNotificationEvent } from '../common/events';
 
 @Injectable()
-export class CommunityService {
+export class CommunityService implements OnModuleInit {
   private readonly logger = new Logger(CommunityService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(SUBSCRIPTIONS_SVC)
+    private readonly subscriptionsClient: ClientRMQ,
+  ) {}
+
+  onModuleInit(): void {
+    this.subscriptionsClient
+      .connect()
+      .then(() =>
+        this.logger.log(`${SUBSCRIPTIONS_SVC} connection established`),
+      )
+      .catch(() => this.logger.error(`${SUBSCRIPTIONS_SVC} connection failed`));
+  }
 
   async createForum(payload: { videoId: string; creatorId: string }) {
     await this.prisma.videoForum.create({
@@ -131,9 +149,15 @@ export class CommunityService {
   async reply(dto: ReplyDto, creatorId: string) {
     await this.checkForum(dto.videoId);
 
+    const creator = await this.prisma.creator.findUnique({
+      where: { id: creatorId },
+    });
+
+    if (!creator) throw new BadRequestException('Creator not found');
+
     const parentComment = await this.prisma.videoComment.findUnique({
       where: { id: dto.parentCommentId },
-      select: { id: true },
+      select: { creatorId: true },
     });
 
     if (!parentComment)
@@ -159,6 +183,22 @@ export class CommunityService {
           data: { videoCommentsCount: { increment: 1 } },
         }),
       ]);
+
+      if (parentComment.creatorId !== creatorId) {
+        this.subscriptionsClient.emit(
+          'persist_notification',
+          new PersistNotificationEvent(
+            creatorId,
+            `${creator.displayName} відповів на ваш коментар!`,
+            `/watch?videoId=${dto.videoId}&commentId=${dto.parentCommentId}`,
+            {
+              nickname: creator.nickname,
+              thumbnailUrl: creator.thumbnailUrl,
+            },
+          ),
+        );
+      }
+
       return { status: true };
     } catch (e: unknown) {
       this.logger.error(e);
@@ -168,6 +208,12 @@ export class CommunityService {
 
   async vote(dto: VoteDto, creatorId: string) {
     await this.checkForum(dto.videoId);
+
+    const creator = await this.prisma.creator.findUnique({
+      where: { id: creatorId },
+    });
+
+    if (!creator) throw new BadRequestException('Creator not found');
 
     const comment = await this.prisma.videoComment.findUnique({
       where: { id: dto.commentId },
@@ -227,6 +273,22 @@ export class CommunityService {
           },
         });
       });
+
+      if (dto.voteType === 'Like') {
+        this.subscriptionsClient.emit(
+          'persist_notification',
+          new PersistNotificationEvent(
+            creatorId,
+            `Ваш коментар сподобався для ${creator.displayName}!`,
+            `/watch?videoId=${dto.videoId}&commentId=${dto.commentId}`,
+            {
+              nickname: creator.nickname,
+              thumbnailUrl: creator.thumbnailUrl,
+            },
+          ),
+        );
+      }
+
       return { status: true };
     } catch (e: unknown) {
       this.logger.error(e);

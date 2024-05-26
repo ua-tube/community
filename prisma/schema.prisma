@@ -43,7 +43,7 @@ enum VideoForumStatus {
 model VideoComment {
   id                String             @id @default(uuid()) @db.Uuid
   videoId           String             @map("video_id") @db.Uuid
-  VideoForum        VideoForum         @relation(fields: [videoId], references: [videoId], onDelete: Cascade)
+  videoForum        VideoForum         @relation(fields: [videoId], references: [videoId], onDelete: Cascade)
   parentCommentId   String?            @map("parent_comment_id") @db.Uuid
   parentComment     VideoComment?      @relation("video_comment", fields: [parentCommentId], references: [id], onDelete: Cascade)
   creatorId         String             @map("creator_id") @db.Uuid
