@@ -73,10 +73,11 @@ export class CommunityService implements OnModuleInit {
   }
 
   async addComment(dto: AddCommentDto, creatorId: string) {
-    await this.checkForum(dto.videoId);
+    const forum = await this.checkForum(dto.videoId);
+    const creator = await this.findCreatorOrThrow(creatorId);
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      await this.prisma.$transaction(async (tx) => {
         await tx.videoComment.create({
           data: {
             creatorId,
@@ -94,6 +95,19 @@ export class CommunityService implements OnModuleInit {
           },
         });
       });
+
+      this.subscriptionsClient.emit(
+        'persist_notification',
+        new PersistNotificationEvent(
+          forum.creatorId,
+          `${creator.displayName} залишив коментар під твоїм відео`,
+          `/dashboard/videos/${dto.videoId}?tab=comments`,
+          {
+            nickname: creator.nickname,
+            thumbnailUrl: creator.thumbnailUrl,
+          },
+        ),
+      );
     } catch (e: any) {
       this.logger.error(e);
       throw new BadRequestException(e?.code || -1);
@@ -188,8 +202,8 @@ export class CommunityService implements OnModuleInit {
         this.subscriptionsClient.emit(
           'persist_notification',
           new PersistNotificationEvent(
-            creatorId,
-            `${creator.displayName} відповів на ваш коментар!`,
+            parentComment.creatorId,
+            `${creator.displayName} відповів на твій коментар!`,
             `/watch?videoId=${dto.videoId}&commentId=${dto.parentCommentId}`,
             {
               nickname: creator.nickname,
@@ -258,7 +272,7 @@ export class CommunityService implements OnModuleInit {
           },
         });
 
-        await tx.videoComment.update({
+        const targetComment = await tx.videoComment.update({
           where: { id: dto.commentId },
           data: {
             [dto.voteType === 'Like' ? 'likesCount' : 'dislikesCount']: {
@@ -271,23 +285,24 @@ export class CommunityService implements OnModuleInit {
                 },
               }),
           },
+          select: { creatorId: true },
         });
-      });
 
-      if (dto.voteType === 'Like') {
-        this.subscriptionsClient.emit(
-          'persist_notification',
-          new PersistNotificationEvent(
-            creatorId,
-            `Ваш коментар сподобався для ${creator.displayName}!`,
-            `/watch?videoId=${dto.videoId}&commentId=${dto.commentId}`,
-            {
-              nickname: creator.nickname,
-              thumbnailUrl: creator.thumbnailUrl,
-            },
-          ),
-        );
-      }
+        if (dto.voteType === 'Like' && targetComment.creatorId !== creatorId) {
+          this.subscriptionsClient.emit(
+            'persist_notification',
+            new PersistNotificationEvent(
+              targetComment.creatorId,
+              `Твій коментар сподобався для ${creator.displayName}!`,
+              `/watch?videoId=${dto.videoId}&commentId=${dto.commentId}`,
+              {
+                nickname: creator.nickname,
+                thumbnailUrl: creator.thumbnailUrl,
+              },
+            ),
+          );
+        }
+      });
 
       return { status: true };
     } catch (e: unknown) {
@@ -365,10 +380,24 @@ export class CommunityService implements OnModuleInit {
   private async checkForum(videoId: string) {
     const videoForum = await this.prisma.videoForum.findUnique({
       where: { videoId },
-      select: { status: true, allowedToComment: true },
+      select: { status: true, allowedToComment: true, creatorId: true },
     });
 
     if (videoForum.status === 'Unregistered' || !videoForum.allowedToComment)
       throw new BadRequestException(`Video forum (${videoId}) closed`);
+
+    return videoForum;
+  }
+
+  private async findCreator(creatorId: string) {
+    return this.prisma.creator.findUnique({
+      where: { id: creatorId },
+    });
+  }
+
+  private async findCreatorOrThrow(creatorId: string) {
+    const creator = await this.findCreator(creatorId);
+    if (!creator) throw new BadRequestException('Creator not found');
+    return creator;
   }
 }

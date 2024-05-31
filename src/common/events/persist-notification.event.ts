@@ -13,13 +13,13 @@ export class PersistNotificationEvent {
   channel: Channel;
 
   constructor(
-    creatorId: string,
+    targetCreatorId: string,
     message: string,
     url: string,
     channel: Channel,
   ) {
     this.notificationId = randomUUID();
-    this.creatorId = creatorId;
+    this.creatorId = targetCreatorId;
     this.message = message;
     this.url = url;
     this.channel = channel;
