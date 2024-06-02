@@ -14,9 +14,9 @@ import {
   ReplyDto,
   VoteDto,
 } from './dto';
-import { SUBSCRIPTIONS_SVC } from '../common/constants';
+import { SUBSCRIPTIONS_SVC, VIDEO_MANAGER_SVC } from '../common/constants';
 import { ClientRMQ } from '@nestjs/microservices';
-import { PersistNotificationEvent } from '../common/events';
+import { PersistNotificationEvent, UpdateVideoCommentsMetrics } from '../common/events';
 
 @Injectable()
 export class CommunityService implements OnModuleInit {
@@ -26,6 +26,8 @@ export class CommunityService implements OnModuleInit {
     private readonly prisma: PrismaService,
     @Inject(SUBSCRIPTIONS_SVC)
     private readonly subscriptionsClient: ClientRMQ,
+    @Inject(VIDEO_MANAGER_SVC)
+    private readonly videoManagerClient: ClientRMQ,
   ) {}
 
   onModuleInit(): void {
@@ -35,6 +37,12 @@ export class CommunityService implements OnModuleInit {
         this.logger.log(`${SUBSCRIPTIONS_SVC} connection established`),
       )
       .catch(() => this.logger.error(`${SUBSCRIPTIONS_SVC} connection failed`));
+    this.videoManagerClient
+      .connect()
+      .then(() =>
+        this.logger.log(`${VIDEO_MANAGER_SVC} connection established`),
+      )
+      .catch(() => this.logger.error(`${VIDEO_MANAGER_SVC} connection failed`));
   }
 
   async createForum(payload: { videoId: string; creatorId: string }) {
@@ -87,13 +95,23 @@ export class CommunityService implements OnModuleInit {
             repliesCount: 0,
           },
         });
-        await tx.videoForum.update({
+        
+        const metrics = await tx.videoForum.update({
           where: { videoId: dto.videoId },
           data: {
             videoCommentsCount: { increment: 1 },
             rootVideoCommentsCount: { increment: 1 },
           },
         });
+
+        this.videoManagerClient.emit(
+          'update_video_comments_metrics',
+          new UpdateVideoCommentsMetrics(
+            dto.videoId,
+            metrics.videoCommentsCount,
+            new Date()
+          )
+        )
       });
 
       this.subscriptionsClient.emit(

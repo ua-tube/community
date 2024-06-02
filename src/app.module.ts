@@ -23,6 +23,7 @@ import Joi from 'joi';
         RABBITMQ_URL: Joi.string().required(),
         RABBITMQ_QUEUE: Joi.string().required(),
         RABBITMQ_SUBSCRIPTIONS_QUEUE: Joi.string().required(),
+        RABBITMQ_VIDEO_MANAGER_QUEUE: Joi.string().required(),
       }),
     }),
     CommunityModule,
